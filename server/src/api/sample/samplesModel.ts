@@ -2,21 +2,21 @@ import ModelReturnTypes from "../../entities/ModelReturnTypes";
 import PaginationReturnTypes from "../../entities/PaginationReturnTypes";
 import formatValidationErrors from "../../utils/formatValidationErrors";
 import prismaClient from "../../utils/prismaClient";
-import Todo, { TodoType } from "../../validations/Todo";
-import TodoParams, { TodoParamsType } from "../../validations/TodoParams";
-import UpdateTodo, { UpdateTodoType } from "../../validations/UpdateTodo";
+import Sample, { SampleType } from "../../validations/Sample";
+import PaginationParams, { PaginationParamsType } from "../../validations/PaginationParams";
 
-const createTodo = async (userId: string, body: TodoType) => {
+
+const createSample = async (userId: string, body: SampleType) => {
     const res = { statusCode: 201 } as ModelReturnTypes;
 
-    const validation = Todo.safeParse(body);
+    const validation = Sample.safeParse(body);
 
     const error = formatValidationErrors(validation);
     if (error) return error;
 
     const data = validation.data!;
 
-    res.data = await prismaClient.todos.create({
+    res.data = await prismaClient.samples.create({
         data: {
             ...data,
             userId,
@@ -26,43 +26,11 @@ const createTodo = async (userId: string, body: TodoType) => {
     return res;
 };
 
-const updateTodo = async (userId: string, body: UpdateTodoType) => {
-    const res = { statusCode: 404 } as ModelReturnTypes;
-
-    const validation = UpdateTodo.safeParse(body);
-    const error = formatValidationErrors(validation);
-    if (error) return error;
-
-    const todo = await prismaClient.todos.findUnique({
+const deleteSample = async (userId: string, sampleId: string) => {
+    await prismaClient.samples.update({
         where: {
             userId,
-            todoId: validation.data!.todoId,
-        },
-    });
-
-    if (!todo) {
-        res.error = { error: "Todo not found" };
-        return res;
-    }
-
-    const data = validation.data!;
-
-    res.data = await prismaClient.todos.update({
-        where: {
-            todoId: todo.todoId,
-        },
-        data,
-    });
-
-    res.statusCode = 200;
-    return res;
-};
-
-const deleteTodo = async (userId: string, todoId: string) => {
-    await prismaClient.todos.update({
-        where: {
-            userId,
-            todoId,
+            sampleId,
         },
         data: {
             deletedAt: new Date(),
@@ -70,7 +38,7 @@ const deleteTodo = async (userId: string, todoId: string) => {
     });
 };
 
-const getFilter = (userId: string, filter: TodoParamsType) => {
+const getFilter = (userId: string, filter: PaginationParamsType) => {
     const seed = filter.seed;
     const status = filter.status;
 
@@ -97,10 +65,10 @@ const getFilter = (userId: string, filter: TodoParamsType) => {
     return seed ? withSeed : noSeed;
 };
 
-const paginateTodos = async (userId: string, body: TodoParamsType) => {
+const paginateSamples = async (userId: string, body: PaginationParamsType) => {
     const res = { statusCode: 200, info: {}, data: {}} as PaginationReturnTypes;
 
-    const validation = TodoParams.safeParse(body);
+    const validation = PaginationParams.safeParse(body);
     const error = formatValidationErrors(validation);
     if (error) {
         res.statusCode = error.statusCode;
@@ -114,7 +82,7 @@ const paginateTodos = async (userId: string, body: TodoParamsType) => {
     const pageSize = filter.pageSize || parseInt(process.env.PAGE_SIZE || "10");
 
 
-    res.data = await prismaClient.todos.findMany({
+    res.data = await prismaClient.samples.findMany({
         where: getFilter(userId, filter),
         orderBy: filter.seed
             ? {
@@ -131,7 +99,7 @@ const paginateTodos = async (userId: string, body: TodoParamsType) => {
         take: pageSize,
     });
 
-    const total = await prismaClient.todos.count({
+    const total = await prismaClient.samples.count({
         where: getFilter(userId, filter),
     });
 
@@ -141,4 +109,4 @@ const paginateTodos = async (userId: string, body: TodoParamsType) => {
     return res;
 };
 
-export { createTodo, updateTodo, deleteTodo, paginateTodos };
+export { createSample, deleteSample, paginateSamples };

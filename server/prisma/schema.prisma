@@ -22,11 +22,11 @@ model Users {
     updatedAt DateTime  @updatedAt
     deletedAt DateTime?
     sessions Sessions[]
-    todos Todos[]
+    todos Samples[]
 }
 
-model Todos {
-    todoId String @id @default(cuid())
+model Samples {
+    sampleId String @id @default(cuid())
     title String
     body String?
     userId String
