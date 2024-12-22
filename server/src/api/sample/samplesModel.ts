@@ -4,6 +4,7 @@ import formatValidationErrors from "../../utils/formatValidationErrors";
 import prismaClient from "../../utils/prismaClient";
 import Sample, { SampleType } from "../../validations/Sample";
 import PaginationParams, { PaginationParamsType } from "../../validations/PaginationParams";
+import { DEFAULT_PAGE_SIZE } from "../../entities/constants";
 
 
 const createSample = async (userId: string, body: SampleType) => {
@@ -79,7 +80,7 @@ const paginateSamples = async (userId: string, body: PaginationParamsType) => {
     const filter = validation.data!;
 
     const page = filter.page || 1;
-    const pageSize = filter.pageSize || parseInt(process.env.PAGE_SIZE || "10");
+    const pageSize = filter.pageSize || DEFAULT_PAGE_SIZE;
 
 
     res.data = await prismaClient.samples.findMany({
