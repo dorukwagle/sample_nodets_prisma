@@ -11,7 +11,7 @@ const api = (p: string) => `/api/${p}`;
 const initializeRoutes = (app: Express): void => {
     app.use(cookieParser());
 
-    app.use(api("user"), users);
+    app.use(api("users"), users);
     app.use(api("auth"), auth);
     app.use(api("samples"), authorize, samples);
 }
