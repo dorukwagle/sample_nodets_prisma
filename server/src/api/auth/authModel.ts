@@ -43,7 +43,8 @@ const createSession = async (user: CustomUser): Promise<string> => {
        data: {
            userId: userInfo!.userId,
            session: uuidV7(),
-           expiresAt: expiryDate
+           expiresAt: expiryDate,
+           role: userInfo!.role
        }
     });
 

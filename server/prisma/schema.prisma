@@ -5,12 +5,17 @@ datasource db {
 
 generator client {
     provider        = "prisma-client-js"
-    previewFeatures = ["fullTextSearch", "fullTextIndex", "omitApi"]
+    previewFeatures = []
 }
 
 enum EStatus {
     Pending
     Completed
+}
+
+enum EUserRoles {
+    Admin
+    User
 }
 
 model Users {
@@ -21,6 +26,7 @@ model Users {
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
     deletedAt DateTime?
+    role EUserRoles @default(User)
     sessions Sessions[]
     todos Samples[]
 }
@@ -43,6 +49,7 @@ model Sessions {
   sessionId BigInt @id @default(autoincrement())
   session String @unique
   userId String
+  role EUserRoles
   user Users @relation(fields: [userId], references: [userId])
   createdAt DateTime @default(now()) @db.Timestamp(3)
   deletedAt DateTime?
