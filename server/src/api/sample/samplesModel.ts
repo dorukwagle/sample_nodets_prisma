@@ -4,8 +4,8 @@ import formatValidationErrors from "../../utils/formatValidationErrors";
 import prismaClient from "../../utils/prismaClient";
 import Sample, { SampleType } from "../../validations/Sample";
 import PaginationParams, { PaginationParamsType } from "../../validations/PaginationParams";
-import { DEFAULT_PAGE_SIZE } from "../../entities/constants";
-import { getPaginatedItems } from "../../utils/paginator";
+import paginateItems from "../../utils/paginator";
+import { Prisma } from "@prisma/client";
 
 
 const createSample = async (userId: string, body: SampleType) => {
@@ -40,17 +40,33 @@ const deleteSample = async (userId: string, sampleId: string) => {
     });
 };
 
-const paginateSamples = async (userId: string, body: PaginationParamsType): Promise<PaginationReturnTypes> => {
-    
-    return getPaginatedItems("samples", body, { 
-        defaultSeed: body.seed || "test sample",
-        fields: [
-            { column: "userId", seed: userId },
-            { column: "title" },
-            { column: "body", search: true },
-        ],
-        operator: "AND",
-     }, [], { createdAt: "desc" });
+const paginateSamples = async (userId: string, params: PaginationParamsType): Promise<PaginationReturnTypes> => {
+    const res = { statusCode: 400 } as PaginationReturnTypes;
+
+    const validation = PaginationParams.safeParse(params);
+    const error = formatValidationErrors(validation);
+    if (error) {
+        res.error = error.error;
+        return res;
+    }
+
+    const data = validation.data!;
+
+    return paginateItems<Prisma.SamplesFindManyArgs>("samples", {
+        where: {
+            userId,
+        },
+        select: {
+            sampleId: true,
+            title: true,
+            body: true,
+            createdAt: true,
+            updatedAt: true,
+        },
+        orderBy: {
+            createdAt: "desc",
+        }
+    }, data);
 };
 
 export { createSample, deleteSample, paginateSamples };

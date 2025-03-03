@@ -1,116 +1,34 @@
+import { Prisma } from "@prisma/client"
+import prismaClient from "./prismaClient"
+import PaginationReturnTypes from "../entities/PaginationReturnTypes"
 import PaginationParams, { PaginationParamsType } from "../validations/PaginationParams";
-import PaginationReturnTypes from "../entities/PaginationReturnTypes";
 import { DEFAULT_PAGE_SIZE } from "../entities/constants";
-import prismaClient from "./prismaClient";
 
-type model = "samples" | "users";
 
-export type WhereArgs = {
-    fields: { column: string, child?: string, search?: boolean, seed?: any, oneToMany?: boolean, number?: boolean }[],
-    defaultSeed: string | number | BigInt;
-    operator?: "AND" | "OR";
-}
-
-interface Args {
-    res: PaginationReturnTypes;
-    model: model;
-    whereArgs?: WhereArgs;
-}
-
-const fetchById = async ({res, model, whereArgs}: Args) => {
-    const {fields, defaultSeed} = whereArgs!;
-
+  const paginateItems = async <T>(model: Uncapitalize<Prisma.ModelName>, args: T, params?: PaginationParamsType) => {
+    const validation = PaginationParams.pick({ page: true, pageSize: true }).safeParse(params).data;
+    const page = validation?.page || 1;
+    const pageSize = validation?.pageSize || DEFAULT_PAGE_SIZE;
     // @ts-ignore
-    res.data = (await prismaClient[model].findUnique({
-        where: {
-            [fields![0].column]: fields[0].seed ? fields[0].seed : defaultSeed
-        }
-    })) || [];
-    return res;
-};
-
-const paginateItems = async (page: number, size: number,
-                             {res, model, whereArgs}: Args, includes?: string[], sort?: {}) => {
-    const where: { [key: string]: any }[] = [];
-    const include: { [key: string]: any } = {};
-    let orderBy: any = {};
-
-    if (includes?.length)
-        includes.forEach(item => include[item] = true);
-        const operator = whereArgs?.operator || "AND";
-
-    if (whereArgs?.fields.length) {
-        whereArgs.fields.forEach(item => {
-            let seed = item.seed || whereArgs.defaultSeed;
-            if (item.number) seed = Number(seed);
-
-            const relationFilter = {
-                [item.child!]: {
-                    [item.search ? "search" : "contains"]:
-                    seed
-                }
-            };
-            const itemFilter = item.number ? {equals: seed} :
-                {[item.search ? "search" : "contains"]: seed};
-
-            const whereObj: { [key: string]: any } = {};
-            whereObj[item.column] = item.child ?
-                (item.oneToMany ? {[operator === "AND" ? "every" : "some"]: relationFilter} : relationFilter) : itemFilter;
-
-            where.push(whereObj);
-        });
-    }
-
-    if (sort)
-        orderBy = sort;
-
-    const whereWithOperator = {
-        [operator]: where
-    };
-
-    const query = {
-        skip: Math.abs((page - 1) * size),
-        take: size,
-        where: whereWithOperator,
-        include,
-        orderBy
-    };
-
+     const count = await prismaClient[model].count({ where: args.where });
+     
     // @ts-ignore
-    res.data = await prismaClient[model].findMany(query);
-
-    // @ts-ignore
-    const itemsCount = await prismaClient[model].count({
-        where: whereWithOperator
+    const data = await prismaClient[model].findMany({
+      ...args,
+      take: pageSize,
+      skip: (page - 1) * pageSize,
     });
 
-    res.info = {
-        itemsCount,
-        hasNextPage: (page * size) < itemsCount
-    };
+    return {
+      data,
+      statusCode: 200,
+      info: {
+        total: count,
+        lastPage: Math.ceil(count / pageSize),
+        prev: page > 1 ? page - 1 : null,
+        next: page < Math.ceil(count / pageSize) ? page + 1 : null,
+      },
+    } as PaginationReturnTypes;
+  };
 
-    return res;
-};
-
-const getPaginatedItems = async (model: model, filterParams: PaginationParamsType,
-                                 whereArgs?: WhereArgs, includes?: string[], sort?: {}) => {
-    const res = {statusCode: 200} as PaginationReturnTypes;
-    const validation = PaginationParams.safeParse(filterParams);
-
-    const page = validation.data?.page || 1;
-    const pageSize = validation.data?.pageSize || DEFAULT_PAGE_SIZE;
-
-    const args: Args = {res, model, whereArgs};
-    return await paginateItems(page, pageSize, args, includes, sort);
-};
-
-const findRecord = async (model: model, whereArgs: WhereArgs) => {
-    const res = {statusCode: 200} as PaginationReturnTypes;
-
-    return fetchById({res, model, whereArgs});
-};
-
-export {
-    getPaginatedItems,
-    findRecord
-};
+  export default paginateItems;

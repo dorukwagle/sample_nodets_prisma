@@ -2,7 +2,10 @@ import ModelReturnTypes from "./ModelReturnTypes";
 
 interface Info {
     hasNextPage: boolean;
-    itemsCount: number;
+    total: number;
+    lastPage: number;
+    next: number | null;
+    prev: number | null;
 }
 
 interface PaginationReturnTypes<D={}, E={}> extends ModelReturnTypes<D, E> {
