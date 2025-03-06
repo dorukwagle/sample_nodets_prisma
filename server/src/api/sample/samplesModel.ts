@@ -6,6 +6,7 @@ import Sample, { SampleType } from "../../validations/Sample";
 import PaginationParams, { PaginationParamsType } from "../../validations/PaginationParams";
 import paginateItems from "../../utils/paginator";
 import { Prisma } from "@prisma/client";
+import Paginator from "../../utils/paginator";
 
 
 const createSample = async (userId: string, body: SampleType) => {
@@ -52,7 +53,7 @@ const paginateSamples = async (userId: string, params: PaginationParamsType): Pr
 
     const data = validation.data!;
 
-    return paginateItems<Prisma.SamplesFindManyArgs>("samples", {
+    return new Paginator<Prisma.SamplesFindManyArgs>("samples", {
         where: {
             userId,
         },
@@ -66,7 +67,7 @@ const paginateSamples = async (userId: string, params: PaginationParamsType): Pr
         orderBy: {
             createdAt: "desc",
         }
-    }, data);
+    }, data).get();
 };
 
 export { createSample, deleteSample, paginateSamples };
